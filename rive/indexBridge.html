@@ -2,96 +2,50 @@
 <html lang="en">
 <body style="margin: 0; background-color:#222222;">
 <div id="button">
-    <canvas id="canvas" style="display: block; background-color: #222222;  background-color: red;"></canvas>
+    <canvas id="canvas" style="display: block; background-color: #222222;"></canvas>
 </div>
-<!-- <script src="https://unpkg.com/@rive-app/canvas"></script> -->
 <script src="rive.js"></script>
-<!-- <script src="rive_2_34_1.js"></script> -->
-<!-- <script src="https://appassets.androidplatform.net/storage/rive.js"></script> -->
-<!-- <script src="file:///android_asset/rive.js"></script> -->
 <script>
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
 
-    // Get the riv file number from URL parameter
-    const urlParams = new URLSearchParams(window.location.search);
-    const rivFileNumber = urlParams.get('rivFile') || 1;
-
     async function init() {
-        // Get base64 from Android bridge
-        const base64 = RiveLoader.loadRivFile('file.riv');
-        
-        // Convert base64 to ArrayBuffer without atob
-        const binaryLen = base64.length * 0.75;
-        const byteNumbers = new Uint8Array(
-            [...base64].map((c, i) => {
-                const b64chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
-                return b64chars.indexOf(c);
-            })
-        );
-
-        // Use fetch with blob URL to let Rive load it properly
         const response = await fetch('https://appassets.androidplatform.net/storage/file.riv');
         const buffer = await response.arrayBuffer();
 
-    // Fill the canvas, cropping Rive if necessary
-    let layout = new rive.Layout({
-        fit: rive.Fit.Cover,
-    });
+        let layout = new rive.Layout({
+            fit: rive.Fit.Cover,
+        });
 
-    const r = new rive.Rive({
-        buffer: buffer,
-        canvas: document.getElementById('canvas'),
-        autoplay: true,
-        autoBind: true,
-        stateMachines: 'State Machine 1',
-        layout: layout,
+        const r = new rive.Rive({
+            buffer: buffer,
+            canvas: document.getElementById('canvas'),
+            autoplay: true,
+            autoBind: true,
+            stateMachines: 'State Machine 1',
+            layout: layout,
+            onLoad: () => {
+                const vmi = r.viewModelInstance;
+                function updateDateTime() {
+                    const now = new Date();
+                    const hours = String(now.getHours()).padStart(2, '0');
+                    const minutes = String(now.getMinutes()).padStart(2, '0');
+                    const months = ['JAN','FEB','MAR','APR','MAY','JUN',
+                                    'JUL','AUG','SEP','OCT','NOV','DEC'];
+                    const date = String(now.getDate()).padStart(2, '0');
+                    const monthName = months[now.getMonth()];
+                    vmi.string('stringTime').value = `${hours}:${minutes}`;
+                    vmi.string('stringDate').value = date;
+                    vmi.string('stringMonth').value = monthName;
+                }
+                updateDateTime();
+                setInterval(updateDateTime, 1000);
+            },
+            onLoadError: (e) => { console.error('Rive load error:', JSON.stringify(e)); }
+        });  // ← closes new rive.Rive({
+    }    // ← closes async function init()
 
-        onLoad: () => {
-            const vmi = r.viewModelInstance;
-
-            // Function to update time and date
-            function updateDateTime() {
-                const now = new Date();
-
-                // Format time as HH:MM
-                const hours = String(now.getHours()).padStart(2, '0');
-                const minutes = String(now.getMinutes()).padStart(2, '0');
-                const timeString = `${hours}:${minutes}`;
-
-                // Format date as "DAY DD MON" (e.g., "MON 14 JAN")
-                //const days = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
-                const months = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN',
-                               'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
-
-
-                //const dayName = days[now.getDay()];
-                const date = String(now.getDate()).padStart(2, '0');
-                const monthName = months[now.getMonth()];
-                const dateString = `${date}`;
-                //const dateString = `${dayName} ${date} ${monthName}`;
-                const monthString = `${monthName}`;
-
-                // Update the Rive view model
-                vmi.string('stringTime').value = timeString;
-                vmi.string('stringDate').value = dateString;
-                vmi.string('stringMonth').value = monthString;
-            }
-
-            // Update immediately on load
-            updateDateTime();
-
-            // Update every second (1000 milliseconds)
-            setInterval(updateDateTime, 1000);
-        }
-    });
-
+    init().catch(e => console.error('Init error:', e));
 </script>
 </body>
 </html>
-
-
-
-
-
-
