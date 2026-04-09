@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<body style="margin: 0; background-color:#222222;">
+<div id="button">
+    <canvas id="canvas" style="display: block; background-color: #222222;"></canvas>
+</div>
+
+<!-- <script src="rive.js"></script> -->
+<script src="rive.js"></script>
+
+<script>
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    // Get the riv file number from URL parameter
+    const urlParams = new URLSearchParams(window.location.search);
+    const rivFileNumber = urlParams.get('rivFile') || 1;
+
+    // Fill the canvas, cropping Rive if necessary
+    let layout = new rive.Layout({
+        fit: rive.Fit.Cover,
+    });
+
+    const r = new rive.Rive({
+        src: `https://appassets.androidplatform.net/storage/file.riv`,
+        canvas: document.getElementById('canvas'),
+        autoplay: true,
+        autoBind: true,
+        stateMachines: 'State Machine 1',
+        layout: layout,
+
+        onLoad: () => {
+            const vmi = r.viewModelInstance;
+
+            // Function to update time and date
+            function updateDateTime() {
+                const now = new Date();
+
+                // Format time as HH:MM
+                const hours = String(now.getHours()).padStart(2, '0');
+                const minutes = String(now.getMinutes()).padStart(2, '0');
+                //const timeString = `${hours}:${minutes}`;
+
+                // Format date as "DAY DD MON" (e.g., "MON 14 JAN")
+                const days = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+                const months = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN',
+                               'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+
+
+                const dayName = days[now.getDay()];
+                const date = String(now.getDate()).padStart(2, '0');
+                const monthName = months[now.getMonth()];
+                const dayString =  `${dayName}`;
+                const dateString = `${date}`;
+                const monthString = `${monthName}`;
+
+                // Update the Rive view model
+                vmi.string('stringDay').value = dayString;
+                vmi.string('stringDate').value = dateString;
+                vmi.string('stringMonth').value = monthString;
+
+                vmi.string('stringHours').value = hours;
+                vmi.string('stringMinutes').value = minutes;
+            }
+
+            // Function to update battery percentage as a number
+            function updateBattery(battery) {
+                const batteryPercent = Math.round(battery.level * 100);
+                vmi.number('numberBattery').value = batteryPercent;
+                vmi.boolean('isCharging').value = battery.charging;
+            }
+
+            // Update immediately on load
+            updateDateTime();
+
+            // Update every second (1000 milliseconds)
+            setInterval(updateDateTime, 1000);
+
+            // Battery API (with feature detection for unsupported browsers)
+            if ('getBattery' in navigator) {
+                navigator.getBattery().then(battery => {
+                    // Initial update
+                    updateBattery(battery);
+
+                    // Update when battery level changes
+                    battery.addEventListener('levelchange', () => {
+                        updateBattery(battery);
+                    });
+
+                    // Update when charging state changes
+                    battery.addEventListener('chargingchange', () => {
+                        updateBattery(battery);
+                    });
+                });
+            } else {
+                // Fallback: default values if Battery API not supported
+                vmi.number('numberBattery').value = 0;                 // might need to change to numberBattery
+                vmi.boolean('isCharging').value = false;           // might need to change to isCharging
+            }
+        }
+    });
+
+</script>
+</body>
+</html>
+
+
